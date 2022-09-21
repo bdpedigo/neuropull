@@ -25,7 +25,7 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.7.0,<4.0"
 
-black  = { version = "^21.5b2", optional = true}
+black  = { version = "^22.3.0", optional = true}
 isort  = { version = "^5.8.0", optional = true}
 flake8  = { version = "^3.9.2", optional = true}
 flake8-docstrings = { version = "^1.6.0", optional = true }
@@ -45,6 +45,7 @@ mkdocs-autorefs = {version = "^0.2.1", optional = true}
 pre-commit = {version = "^2.12.0", optional = true}
 toml = {version = "^0.10.2", optional = true}
 bump2version = {version = "^1.0.1", optional = true}
+# https://github.com/mkdocs/mkdocs/issues/2799
 Jinja2 = {version = "3.0.0", optional = true}
 
 [tool.poetry.extras]
