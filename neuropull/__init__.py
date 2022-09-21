@@ -2,4 +2,4 @@
 
 __author__ = """Benjamin D. Pedigo"""
 __email__ = 'bpedigo@jhu.edu'
-__version__ = '0.0.3'
+__version__ = '0.0.4'
