@@ -112,3 +112,6 @@ ENV/
 
 # mkdocs build dir
 site/
+
+# raw data (for now)
+processing/raw_data/
