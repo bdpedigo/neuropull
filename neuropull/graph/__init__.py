@@ -1,3 +1,3 @@
-from .graph import ArrayGraph
+from .graph import AdjacencyFrame, MultiAdjacencyFrame
 
-__all__ = ["ArrayGraph"]
+__all__ = ["AdjacencyFrame", "MultiAdjacencyFrame"]

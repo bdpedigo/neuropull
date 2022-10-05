@@ -9,7 +9,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from neuropull.graph import ArrayGraph
+from neuropull.graph import AdjacencyFrame, MultiAdjacencyFrame
 
 DATA_PATH = Path("neuropull/processing/raw_data")
 OUT_PATH = Path("neuropull/data")
@@ -108,6 +108,7 @@ weight_names = ['chemical_weight', 'electrical_weight']
 
 
 #%%
+
 for sex in ["male", "herm"]:
     chem_name = f"{sex}_chem_adj.csv"
 
@@ -122,8 +123,8 @@ for sex in ["male", "herm"]:
     elec_adj = load_adjacency(elec_path)
     assert (elec_adj.values.T == elec_adj.values.T).all()
 
-    chem_graph = ArrayGraph(chem_adj)
-    elec_graph = ArrayGraph(elec_adj)
+    chem_graph = AdjacencyFrame(chem_adj)
+    elec_graph = AdjacencyFrame(elec_adj)
     print(len(chem_graph))
     print(len(elec_graph))
     chem_graph = chem_graph.union(elec_graph)
@@ -132,11 +133,15 @@ for sex in ["male", "herm"]:
     print(len(elec_graph))
     print()
 
+    multigraph = MultiAdjacencyFrame(
+        {"chemical": chem_graph.adjacency, "electrical": elec_graph.adjacency}
+    )
+
     node_ids = chem_graph.index
     # generate some node metadata programatically
     nodes = create_node_data(node_ids, exceptions=["vBWM", "dgl", "dBWM"])
-    chem_graph = ArrayGraph(chem_graph.adjacency, nodes=nodes)
-    elec_graph = ArrayGraph(elec_graph.adjacency, nodes=nodes)
+    chem_graph = AdjacencyFrame(chem_graph.adjacency, nodes=nodes)
+    elec_graph = AdjacencyFrame(elec_graph.adjacency, nodes=nodes)
 
     g = from_pandas_adjacencies(
         [chem_graph.adjacency, elec_graph.adjacency], weight_names
@@ -147,6 +152,7 @@ for sex in ["male", "herm"]:
 
     saveloc = OUT_PATH / f"c_elegans_{sex}_nodes.csv"
     chem_graph.nodes.to_csv(saveloc)
+
 
 #%% [markdown]
 # ## End
