@@ -121,7 +121,14 @@ for sex in ["male", "herm"]:
     # load adjacency matrices
     chem_adj = load_adjacency(chem_path)
     elec_adj = load_adjacency(elec_path)
+
+    # checking that the electrical connections are already symmetric
     assert (elec_adj.values.T == elec_adj.values.T).all()
+
+    node_ids = chem_adj.index.union(elec_adj.index)
+
+    # generate some node metadata programatically
+    nodes = create_node_data(node_ids, exceptions=["vBWM", "dgl", "dBWM"])
 
     chem_graph = AdjacencyFrame(chem_adj)
     elec_graph = AdjacencyFrame(elec_adj)
@@ -134,14 +141,12 @@ for sex in ["male", "herm"]:
     print()
 
     multigraph = MultiAdjacencyFrame(
-        {"chemical": chem_graph.adjacency, "electrical": elec_graph.adjacency}
+        {"chemical": chem_graph, "electrical": elec_graph},
+        nodes=nodes,
     )
-
-    node_ids = chem_graph.index
-    # generate some node metadata programatically
-    nodes = create_node_data(node_ids, exceptions=["vBWM", "dgl", "dBWM"])
-    chem_graph = AdjacencyFrame(chem_graph.adjacency, nodes=nodes)
-    elec_graph = AdjacencyFrame(elec_graph.adjacency, nodes=nodes)
+    frames = multigraph.to_adjacency_frames()
+    chem_graph = frames['chemical']
+    elec_graph = frames['electrical']
 
     g = from_pandas_adjacencies(
         [chem_graph.adjacency, elec_graph.adjacency], weight_names
@@ -153,6 +158,34 @@ for sex in ["male", "herm"]:
     saveloc = OUT_PATH / f"c_elegans_{sex}_nodes.csv"
     chem_graph.nodes.to_csv(saveloc)
 
+#%%
+nodes_path = DATA_PATH / "c_elegans" / "nodes.csv"
+nodes = pd.read_csv(nodes_path, index_col=0)
+nodes
+
+#%%
+node_ids[~node_ids.isin(nodes.index)]
+
+#%%
+network_index = node_ids.str.lower().str.strip(" ")
+
+should_be_herm_nodes = nodes[nodes['sex'] != 'male']
+node_index = should_be_herm_nodes.index.str.lower().str.strip(' ')
+
+missing_in_graph = node_index.difference(network_index)
+missing_in_nodes = network_index.difference(node_index)
+
+#%%
+missing_in_graph.sort_values()
+
+
+#%%
+missing_in_nodes.sort_values()
+
+#%%
+multiframe = MultiAdjacencyFrame.from_union(
+    {'chemical': chem_adj, "electrical": elec_adj}
+)
 
 #%% [markdown]
 # ## End
