@@ -3,54 +3,8 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from beartype import beartype
 
 Index = Union[pd.Index, pd.MultiIndex, np.ndarray, list]
-
-
-class _SparseSubgraphAdjacency:
-    def __init__(self, adjacency, index):
-        self.adjacency = adjacency
-        self.index = index
-
-    def reindex(self, source_index: Index, target_index: Index):
-        # TODO
-        pass
-
-
-class _NumpySubgraphAdjacency:
-    def __init__(self, adjacency, index):
-        pass
-
-
-class _PandasSubgraphAdjacency:
-    @beartype
-    def __init__(self, adjacency: pd.DataFrame):
-        self.adjacency = adjacency
-        self.source_index = adjacency.index
-        self.target_index = adjacency.columns
-
-    @beartype
-    def reindex(
-        self, source_index: Index, target_index: Index
-    ) -> "_PandasSubgraphAdjacency":
-        adjacency = self.adjacency.reindex(
-            index=source_index, columns=target_index, fill_value=0
-        )
-        self.adjacency = adjacency
-        self.source_index = adjacency.index
-        self.target_index = adjacency.columns
-        return self
-
-
-class BaseSubgraphFrame:
-    def __init__(self, *args, nodes=None, name=None) -> None:
-        if nodes is None:
-            nodes = pd.DataFrame(index=args[0].index)
-
-        self._nodes = nodes
-
-        self.name = name
 
 
 class BaseGraphFrame:

@@ -1,15 +1,57 @@
+import numpy as np
 import pandas as pd
+from scipy.sparse import csr_array
 
-from .base import BaseGraphFrame, _PandasSubgraphAdjacency
+from .base import BaseGraphFrame
+from .matrix import DenseMatrix, SparseMatrix
+from .matrix_frame import MatrixFrame
+from .network_frame import BaseNetworkFrame
 
 
-class AdjacencyFrame(BaseGraphFrame):
+class AdjacencyFrame(BaseNetworkFrame):
+    def __init__(self, adjacency, source_nodes=None, target_nodes=None) -> None:
+
+        if isinstance(adjacency, np.ndarray):
+            adjacency = pd.DataFrame(adjacency)
+
+        if isinstance(adjacency, pd.DataFrame):
+            adjacency = DenseMatrix(adjacency)
+        elif isinstance(adjacency, csr_array):
+            if source_nodes is not None:
+                source_index = source_nodes.index
+            else:
+                source_index = np.arange(adjacency.shape[0])
+            if target_nodes is not None:
+                target_index = target_nodes.index
+            else:
+                target_index = np.arange(adjacency.shape[1])
+            adjacency = SparseMatrix(adjacency, source_index, target_index)
+
+        if source_nodes is None:
+            source_nodes = pd.DataFrame(index=adjacency.index)
+        if target_nodes is None:
+            target_nodes = pd.DataFrame(index=adjacency.columns)
+
+        super().__init__(adjacency, source_nodes, target_nodes)
+
+    @property
+    def shape(self):
+        return self._data.shape
+
+    def __repr__(self) -> str:
+        out = f"AdjacencyFrame with shape: {self.shape}\n"
+        out += f"Source node features: {self.source_nodes.shape[1]}\n"
+        out += f"Target node features: {self.target_nodes.shape[1]}\n"
+        return out
+
+
+class OldAdjacencyFrame(BaseGraphFrame):
     def __init__(self, adjacency, nodes=None, name=None):
         # TODO check that indexed the same way
 
         super().__init__(adjacency, nodes=nodes, name=name)
 
-        self._adjacency = _PandasSubgraphAdjacency(adjacency)
+        self._adjacency = MatrixFrame(adjacency)
 
         # TODO make sure this is robust
         self.dtype = adjacency.values.dtype

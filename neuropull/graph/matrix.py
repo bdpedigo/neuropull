@@ -1,11 +1,11 @@
 from abc import abstractmethod
-from typing import Union
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_array, lil_array
 
-Index = Union[pd.Index, pd.MultiIndex, np.ndarray, list]
+from .types import Index
 
 
 class _BaseMatrix:
@@ -13,7 +13,12 @@ class _BaseMatrix:
         self._matrix = matrix
 
     @abstractmethod
-    def reindex(self, index: Index, columns: Index) -> "_BaseMatrix":
+    def reindex(
+        self,
+        index: Optional[Index] = None,
+        columns: Optional[Index] = None,
+        inplace=False,
+    ) -> "_BaseMatrix":
         pass
 
     @property
@@ -41,15 +46,27 @@ class _BaseMatrix:
         else:
             ValueError("New matrix index and columns must match the index and columns")
 
+    @property
+    def data(self):
+        return self.matrix
+
     def __repr__(self):
         return self._matrix.__repr__()
 
 
 class DenseMatrix(_BaseMatrix):
-    def reindex(self, index: Index, columns: Index) -> "DenseMatrix":
+    def reindex(
+        self,
+        index: Optional[Index] = None,
+        columns: Optional[Index] = None,
+        inplace=False,
+    ) -> "DenseMatrix":
         matrix = self._matrix.reindex(index=index, columns=columns, fill_value=0)
-        self._matrix = matrix
-        return self
+        if not inplace:
+            return DenseMatrix(matrix)
+        else:
+            self._matrix = matrix
+            return self
 
     @property
     def index(self):
@@ -58,6 +75,10 @@ class DenseMatrix(_BaseMatrix):
     @property
     def columns(self):
         return self._matrix.columns
+
+    @property
+    def data(self):
+        return self.matrix.values
 
 
 class SparseMatrix(_BaseMatrix):
@@ -77,7 +98,23 @@ class SparseMatrix(_BaseMatrix):
             index=columns, data=np.arange(self._matrix.shape[1])
         )
 
-    def reindex(self, index: Index, columns: Index) -> "SparseMatrix":
+    def reindex(
+        self,
+        index: Optional[Index] = None,
+        columns: Optional[Index] = None,
+        inplace=False,
+    ) -> "SparseMatrix":
+
+        if inplace:
+            raise NotImplementedError(
+                "Inplace reindexing not implemented for sparse matrix"
+            )
+
+        if index is None:
+            index = self.index
+        if columns is None:
+            columns = self.columns
+
         # TODO I think the smarter thing to do here is never instantiate the matrix
         # until the user asks for it. Basically just keep an edgelist in the meantime.
         # Then just remap indices when doing the reindex operations. But alas.
@@ -95,9 +132,10 @@ class SparseMatrix(_BaseMatrix):
             np.ix_(valid_new_row_positions, valid_new_col_positions)
         ] = self._matrix[valid_new_index_map][:, valid_new_columns_map]
         new_matrix = csr_array(new_matrix)
-        self._matrix = new_matrix
-        self._reset_indexing_maps(index, columns)
-        return self
+        return SparseMatrix(new_matrix, index, columns)
+        # self._matrix = new_matrix
+        # self._reset_indexing_maps(index, columns)
+        # return self
 
     @property
     def index(self):
@@ -140,92 +178,3 @@ class MultiMatrix:
 # class MultiSparseMatrix(_BaseMultiMatrix):
 #     def __init__(self, matrices) -> None:
 #         super().__init__(matrices)
-class BaseFrame:
-    def __init__(self, frame) -> None:
-        pass
-
-
-class MatrixFrame(BaseFrame):
-    def __init__(
-        self,
-        matrix: Union[pd.DataFrame, np.ndarray, csr_array],
-        row_objects: pd.DataFrame,
-        col_objects: pd.DataFrame,
-    ) -> None:
-
-        if isinstance(matrix, np.ndarray):
-            matrix = pd.DataFrame(matrix)
-
-        if isinstance(matrix, pd.DataFrame):
-            matrix = DenseMatrix(matrix)
-        elif isinstance(matrix, csr_array):
-            matrix = SparseMatrix(matrix, row_objects.index, col_objects.index)
-
-        if not row_objects.index.equals(matrix.index):
-            raise ValueError("Row objects index does not match matrix index")
-        if not col_objects.index.equals(matrix.columns):
-            raise ValueError("Column objects index does not match matrix columns")
-
-        self._matrix = matrix
-        self._row_objects = row_objects
-        self._col_objects = col_objects
-
-    def reindex(self, index: Index, columns: Index) -> "MatrixFrame":
-        self._matrix = self._matrix.reindex(index=index, columns=columns)
-        self._row_objects = self._row_objects.reindex(index=index)
-        self._col_objects = self._col_objects.reindex(index=columns)
-        return self
-
-    @property
-    def index(self):
-        return self._matrix.index
-
-    @property
-    def columns(self):
-        return self._matrix.columns
-
-    @property
-    def matrix(self):
-        return self._matrix.matrix
-
-    @matrix.setter
-    def matrix(self, matrix):
-        # TODO not sure how to handle this for sparse arrays
-        raise NotImplementedError("MatrixFrame.matrix is read-only")
-        if not matrix.index.equals(self.index):
-            raise ValueError("New matrix index does not match current index")
-        if not matrix.columns.equals(self.columns):
-            raise ValueError("New matrix columns does not match current columns")
-        self._matrix.matrix = matrix
-
-    @property
-    def shape(self):
-        return self._matrix.shape
-
-    @property
-    def row_objects(self):
-        return self._row_objects
-
-    @row_objects.setter
-    def row_objects(self, row_objects: pd.DataFrame):
-        if not row_objects.index.equals(self.index):
-            raise ValueError("Row objects index does not match matrix index")
-        self._row_objects = row_objects
-
-    @property
-    def col_objects(self):
-        return self._col_objects
-
-    @col_objects.setter
-    def col_objects(self, col_objects: pd.DataFrame):
-        if not col_objects.index.equals(self.columns):
-            raise ValueError("Column objects index does not match matrix columns")
-        self._col_objects = col_objects
-
-    def __repr__(self):
-        return self._matrix.__repr__()
-
-
-class MultiMatrixFrame(BaseFrame):
-    def __init__(self):
-        pass

@@ -1,3 +1,3 @@
-from .graph import AdjacencyFrame, MultiAdjacencyFrame
+from .adjacency import AdjacencyFrame, MultiAdjacencyFrame
 
 __all__ = ["AdjacencyFrame", "MultiAdjacencyFrame"]

@@ -22,7 +22,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.0,<4.0"
+python = ">=3.8.0,<3.10"
 # dev stuff
 black  = { version = "^22.3.0", optional = true}
 isort  = { version = "^5.8.0", optional = true}
@@ -48,6 +48,7 @@ bump2version = {version = "^1.0.1", optional = true}
 Jinja2 = {version = "3.0.0", optional = true}
 python-catmaid = {version = "^2.1.1", optional = true}
 ipykernel = {version = "^6.15.3", optional = true}
+graspologic = {version = "^2.0.0", optional = true}
 # real stuff
 numpy = "^1.23.3"
 networkx = "^2.8.6"
@@ -79,7 +80,8 @@ doc = [
 
 data = [
     "python-catmaid",
-    "ipykernel"
+    "ipykernel",
+    "graspologic"
 ]
 
 [tool.black]

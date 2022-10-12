@@ -27,29 +27,33 @@ network (or matrix) data.
 
 ## Features
 ### Indexing and sorting
-- `loc`
+- [ ] `loc`
   - Select nodes according to an index
-- `iloc`
+- [ ] `iloc`
   - Select nodes according to a positional index
-- `reindex`
+- [x] `reindex`
   - Reorder a network according to some index, handling new nodes appropriately
-- `set_index`
+- [ ] `set_index`
   - Reindex the network according to a unique feature of the nodes
-- `union`
+- [ ] `union`
   - Take the union of nodes with another NetworkFrame
-- `intersection`
+- [ ] `intersection`
   - Take the intersection of nodes with another NetworkFrame
-- `sort_values`
+- [ ] `sort_values`
   - Sort nodes according to values in metadata
-- `sort_values_on`
+- [ ] `sort_values_on`
   - Sort according to implicit values from a grouping
 
 ### Selecting and grouping
-- `groupby`
+- [x] `groupby`
   - Group nodes into subgraphs according to some feature
-- `query`
+- [x] `query`
   - Subselect networks according to node feature values
 
+### Computing and mapping
+- [ ] `map`...
+- [x] `groupby.apply()` divide data into groups and then apply a function to each, collating the results
+
 ### Mathematical operations
-- `__add__` (`+` operator)
+- [x] `__add__` (`+` operator)
   - Add the adjacency matrices/edges of two networks
