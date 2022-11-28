@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -55,6 +55,13 @@ class _BaseMatrix:
 
 
 class DenseMatrix(_BaseMatrix):
+    def __init__(
+        self, matrix: Union[pd.DataFrame, np.ndarray], index=None, columns=None
+    ) -> None:
+        if isinstance(matrix, np.ndarray):
+            matrix = pd.DataFrame(matrix, index=index, columns=columns)
+        self._matrix = matrix
+
     def reindex(
         self,
         index: Optional[Index] = None,

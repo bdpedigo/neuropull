@@ -21,8 +21,8 @@ network (or matrix) data.
 - Adjacency matrices
   - Numpy/Pandas
   - Scipy sparse arrays
-- NetworkX (coming soon)
-- Edgelists (maybe coming someday)
+- NetworkX (maybe someday)
+- Edgelists (maybe someday)
 - Multiplex network versions of the above
 
 ## Features
@@ -39,7 +39,7 @@ network (or matrix) data.
   - Take the union of nodes with another NetworkFrame
 - [ ] `intersection`
   - Take the intersection of nodes with another NetworkFrame
-- [ ] `sort_values`
+- [x] `sort_values`
   - Sort nodes according to values in metadata
 - [ ] `sort_values_on`
   - Sort according to implicit values from a grouping

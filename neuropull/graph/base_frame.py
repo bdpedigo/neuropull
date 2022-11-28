@@ -185,3 +185,17 @@ class BaseFrame:
         else:
             raise ValueError("Axis must be 0 or 1 or 'both'")
         return self.reindex(row_objects.index, col_objects.index)
+
+    def set_index(self, keys, **kwargs):
+        row_objects = self.row_objects.set_index(
+            keys, verify_integrity=True, inplace=False, **kwargs
+        )
+        col_objects = self.col_objects.set_index(
+            keys, verify_integrity=True, inplace=False, **kwargs
+        )
+        data = self._data
+        new_data = self._data.__class__(
+            data.data, index=row_objects.index, columns=col_objects.index
+        )
+
+        return self.__class__(new_data, row_objects, col_objects)
