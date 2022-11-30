@@ -47,8 +47,11 @@ network (or matrix) data.
 ### Selecting and grouping
 - [x] `groupby`
   - Group nodes into subgraphs according to some feature
+  - [ ] Add an `induced` option to groupby (basically only get the diagonal blocks)
 - [x] `query`
   - Subselect networks according to node feature values
+- [ ] `pair`
+  - Something for working with paired data...
 
 ### Computing and mapping
 - [ ] `map`...
