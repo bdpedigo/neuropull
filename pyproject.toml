@@ -33,19 +33,18 @@ pytest  = { version = "^6.2.4", optional = true}
 pytest-cov  = { version = "^2.12.0", optional = true}
 tox  = { version = "^3.20.1", optional = true}
 virtualenv  = { version = "^20.2.2", optional = true}
-pip  = { version = "^20.3.1", optional = true}
-mkdocs  = { version = "^1.3.1", optional = true}
-mkdocs-include-markdown-plugin  = { version = "^1.0.0", optional = true}
-mkdocs-material  = { version = "^6.1.7", optional = true}
-mkdocstrings  = { version = "^0.15.2", optional = true}
-mkdocs-material-extensions  = { version = "^1.0.1", optional = true}
+mkdocs  = "^1.4.2"
+mkdocs-include-markdown-plugin  = "^4.0.0"
+mkdocs-material  = "^8.5.11"
+mkdocstrings  = { version = "^0.19.0", extras = ["python"]}
+mkdocs-material-extensions  = "^1.1.1"
 twine  = { version = "^3.3.0", optional = true}
-mkdocs-autorefs = {version = "^0.2.1", optional = true}
+mkdocs-autorefs = "^0.4.1"
 pre-commit = {version = "^2.12.0", optional = true}
 toml = {version = "^0.10.2", optional = true}
 bump2version = {version = "^1.0.1", optional = true}
 # https://github.com/mkdocs/mkdocs/issues/2799
-Jinja2 = {version = "3.0.0", optional = true}
+Jinja2 = "^3.1.2"
 python-catmaid = {version = "^2.1.1", optional = true}
 ipykernel = {version = "^6.15.3", optional = true}
 graspologic = {version = "^2.0.0", optional = true}
@@ -54,6 +53,7 @@ numpy = "^1.23.3"
 networkx = "^2.8.6"
 beartype = "^0.11.0"
 scipy = "^1.9.2"
+pandas = "^1.5.2"
 
 
 [tool.poetry.extras]

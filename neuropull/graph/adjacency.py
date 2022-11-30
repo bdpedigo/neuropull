@@ -1,14 +1,21 @@
+"""Classes for representing networks as adjacency matrices with node metadata."""
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_array
 
-from .base import BaseGraphFrame
 from .matrix import DenseMatrix, SparseMatrix
-from .matrix_frame import MatrixFrame
 from .network_frame import BaseNetworkFrame
 
 
 class AdjacencyFrame(BaseNetworkFrame):
+    """Represent a network as an adjacency matrix with associated metadata.
+
+    Parameters
+    ----------
+    BaseNetworkFrame : _type_
+        _description_
+    """
+
     def __init__(self, adjacency, source_nodes=None, target_nodes=None) -> None:
 
         if isinstance(adjacency, np.ndarray):
@@ -36,45 +43,49 @@ class AdjacencyFrame(BaseNetworkFrame):
 
     @property
     def shape(self):
+        """Return the shape of the matrix."""
         return self._data.shape
 
     def __repr__(self) -> str:
+        """Return a string representation of the frame."""
         out = f"AdjacencyFrame with shape: {self.shape}\n"
         out += f"Source node features: {self.source_nodes.shape[1]}\n"
         out += f"Target node features: {self.target_nodes.shape[1]}\n"
         return out
 
 
-class OldAdjacencyFrame(BaseGraphFrame):
-    def __init__(self, adjacency, nodes=None, name=None):
-        # TODO check that indexed the same way
+# class OldAdjacencyFrame(BaseGraphFrame):
+#     def __init__(self, adjacency, nodes=None, name=None):
+#         # TODO check that indexed the same way
 
-        super().__init__(adjacency, nodes=nodes, name=name)
+#         super().__init__(adjacency, nodes=nodes, name=name)
 
-        self._adjacency = MatrixFrame(adjacency)
+#         self._adjacency = MatrixFrame(adjacency)
 
-        # TODO make sure this is robust
-        self.dtype = adjacency.values.dtype
+#         # TODO make sure this is robust
+#         self.dtype = adjacency.values.dtype
 
-    @property
-    def adjacency(self):
-        return self._adjacency.adjacency
+#     @property
+#     def adjacency(self):
+#         return self._adjacency.adjacency
 
-    def _reindex_network(self, index):
-        adjacency = self._adjacency.reindex(columns=index, index=index, fill_value=0)
-        return adjacency
+#     def _reindex_network(self, index):
+#         adjacency = self._adjacency.reindex(columns=index, index=index, fill_value=0)
+#         return adjacency
 
-    def largest_connected_component(self):
-        raise NotImplementedError()
+#     def largest_connected_component(self):
+#         raise NotImplementedError()
 
-    def __add__(self, other):
-        raise NotImplementedError()
+#     def __add__(self, other):
+#         raise NotImplementedError()
 
-    def __len__(self):
-        return len(self.index)
+#     def __len__(self):
+#         return len(self.index)
 
 
 class MultiAdjacencyFrame:
+    """Multiplex network as a collection of adjacencies with associated metadata."""
+
     def __init__(self, adjacencies, nodes=None):
 
         if isinstance(adjacencies, list):
@@ -100,10 +111,12 @@ class MultiAdjacencyFrame:
 
     @property
     def layer_names(self):
+        """Return the names of the layers in the multiplex network."""
         return self.adjacencies.keys()
 
     @layer_names.setter
     def layer_names(self, layer_name_map):
+        """Rename the layers in the multiplex network."""
         new_adjacencies = {}
         for layer_name in self.layer_names:
             new_adjacencies[layer_name_map[layer_name]] = self.adjacencies[layer_name]
@@ -111,7 +124,7 @@ class MultiAdjacencyFrame:
 
     @classmethod
     def from_union(cls, adjacencies):
-
+        """Create a multiplex network from a collection of adjacency matrices."""
         if isinstance(adjacencies, dict):
             names = list(adjacencies.keys())
             adjacencies = list(adjacencies.values())
@@ -142,6 +155,7 @@ class MultiAdjacencyFrame:
         return union_frame
 
     def to_adjacency_frames(self):
+        """Return a list of AdjacencyFrames from the layers of the multiplex network."""
         frames = {}
         for name, adjacency in self.adjacencies.items():
             print(type(adjacency))

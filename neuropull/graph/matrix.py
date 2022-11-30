@@ -1,3 +1,5 @@
+"""Matrix frames."""
+
 from abc import abstractmethod
 from typing import Optional, Union
 
@@ -55,6 +57,8 @@ class _BaseMatrix:
 
 
 class DenseMatrix(_BaseMatrix):
+    """Class for representing a dense matrix with row and column metadata."""
+
     def __init__(
         self, matrix: Union[pd.DataFrame, np.ndarray], index=None, columns=None
     ) -> None:
@@ -68,6 +72,22 @@ class DenseMatrix(_BaseMatrix):
         columns: Optional[Index] = None,
         inplace=False,
     ) -> "DenseMatrix":
+        """Reindex the matrix and row and column metadata.
+
+        Parameters
+        ----------
+        index : Optional[Index], optional
+            _description_, by default None
+        columns : Optional[Index], optional
+            _description_, by default None
+        inplace : bool, optional
+            _description_, by default False
+
+        Returns
+        -------
+        DenseMatrix
+            _description_
+        """
         matrix = self._matrix.reindex(index=index, columns=columns, fill_value=0)
         if not inplace:
             return DenseMatrix(matrix)
@@ -77,18 +97,23 @@ class DenseMatrix(_BaseMatrix):
 
     @property
     def index(self):
+        """Row index of the matrix and metadata."""
         return self._matrix.index
 
     @property
     def columns(self):
+        """Column index of the matrix and metadata."""
         return self._matrix.columns
 
     @property
     def data(self):
+        """Matrix data."""
         return self.matrix.values
 
 
 class SparseMatrix(_BaseMatrix):
+    """Class for representing a sparse matrix with row and column metadata."""
+
     def __init__(self, matrix: csr_array, index: Index, columns: Index) -> None:
         super().__init__(matrix)
 
@@ -111,7 +136,7 @@ class SparseMatrix(_BaseMatrix):
         columns: Optional[Index] = None,
         inplace=False,
     ) -> "SparseMatrix":
-
+        """Reindex the matrix and row and column metadata."""
         if inplace:
             raise NotImplementedError(
                 "Inplace reindexing not implemented for sparse matrix"
@@ -146,14 +171,18 @@ class SparseMatrix(_BaseMatrix):
 
     @property
     def index(self):
+        """Row index of the matrix and metadata."""
         return self._index_map.index
 
     @property
     def columns(self):
+        """Column index of the matrix and metadata."""
         return self._columns_map.index
 
 
 class MultiMatrix:
+    """Class for representing a matrix with multiple layers."""
+
     def __init__(self, matrices, layers=None) -> None:
         if layers is None:
             layers = pd.Index(np.arange(len(matrices)))
@@ -166,12 +195,15 @@ class MultiMatrix:
 
     @property
     def layers(self):
+        """Layer names."""
         return self._layers
 
     def reindex_layers(self, layers):
+        """Reindex the layers."""
         raise NotImplementedError()
 
     def reindex(self, index: Index, columns: Index) -> "MultiMatrix":
+        """Reindex the matrix and row and column metadata."""
         for matrix in self._matrices:
             matrix.reindex(index, columns)
         return self

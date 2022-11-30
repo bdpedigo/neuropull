@@ -1,3 +1,5 @@
+"""Frames for representing matrix data and associated metadata."""
+
 from typing import Union
 
 import numpy as np
@@ -8,6 +10,14 @@ from .matrix import DenseMatrix, SparseMatrix, csr_array
 
 
 class MatrixFrame(BaseFrame):
+    """Represents a matrix with associated metadata.
+
+    Parameters
+    ----------
+    BaseFrame : _type_
+        _description_
+    """
+
     def __init__(
         self,
         matrix: Union[pd.DataFrame, np.ndarray, csr_array],
@@ -27,6 +37,7 @@ class MatrixFrame(BaseFrame):
 
     @property
     def matrix(self):
+        """Return the data matrix."""
         return self._data.matrix
 
     @matrix.setter
@@ -41,12 +52,14 @@ class MatrixFrame(BaseFrame):
 
     @property
     def shape(self):
+        """Return the shape of the matrix."""
         return self._matrix.shape
 
     def __repr__(self):
+        """Return a string representation of the frame."""
         return self._matrix.__repr__()
 
 
-class MultiMatrixFrame(BaseFrame):
-    def __init__(self):
-        pass
+# class MultiMatrixFrame(BaseFrame):
+#     def __init__(self):
+#         pass

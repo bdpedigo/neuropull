@@ -1,3 +1,5 @@
+"""Special types for the module."""
+
 from typing import Union
 
 import numpy as np
