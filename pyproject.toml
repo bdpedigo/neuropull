@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "neuropull"
-version = "0.0.4"
+version = "0.1.0"
 homepage = "https://github.com/neurodata/neuropull"
 description = "A lightweight tool for pulling connectome networks and metadata."
 authors = ["Benjamin D. Pedigo <bpedigo@jhu.edu>"]
