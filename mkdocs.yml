@@ -8,6 +8,8 @@ nav:
   - Installation: installation.md
   - Usage: usage.md
   - Modules: api.md
+  - Tutorials:
+    - tutorials/maggot_examples.ipynb
   - Contributing: contributing.md
   - Changelog: changelog.md
 theme:
@@ -43,15 +45,14 @@ markdown_extensions:
   - toc:
       baselevel: 2
       permalink: true
-      slugify: !!python/name:pymdownx.slugs.uslugify
   - meta
+watch:
+  - neuropull
 plugins:
   - include-markdown
+  - mknotebooks
   - search:
       lang: en
-  - mkdocstrings:
-      watch:
-        - neuropull
 extra:
   social:
     - icon: fontawesome/brands/twitter
