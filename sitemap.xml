@@ -2,32 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://neurodata.github.io/neuropull/</loc>
-         <lastmod>2023-01-05</lastmod>
+         <lastmod>2023-01-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://neurodata.github.io/neuropull/api/</loc>
-         <lastmod>2023-01-05</lastmod>
+         <lastmod>2023-01-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://neurodata.github.io/neuropull/changelog/</loc>
-         <lastmod>2023-01-05</lastmod>
+         <lastmod>2023-01-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://neurodata.github.io/neuropull/contributing/</loc>
-         <lastmod>2023-01-05</lastmod>
+         <lastmod>2023-01-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://neurodata.github.io/neuropull/installation/</loc>
-         <lastmod>2023-01-05</lastmod>
+         <lastmod>2023-01-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://neurodata.github.io/neuropull/usage/</loc>
-         <lastmod>2023-01-05</lastmod>
+         <lastmod>2023-01-06</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://neurodata.github.io/neuropull/tutorials/maggot_examples/</loc>
+         <lastmod>2023-01-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
