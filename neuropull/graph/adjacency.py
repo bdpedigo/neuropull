@@ -145,12 +145,15 @@ class MultiAdjacencyFrame:
         all_nodes = [frame.nodes for frame in adjacency_frames]
         nodes = _concat_check_duplicates(all_nodes)
         union_index = nodes.index
+        print('made union index')
 
         new_adjacencies = {}
         for name, frame in zip(names, adjacency_frames):
             new_adjacencies[name] = frame.reindex(union_index).adjacency
+        print("collected union adjacencies")
 
         union_frame = cls(new_adjacencies, nodes=nodes)
+        print('created union frame')
 
         return union_frame
 

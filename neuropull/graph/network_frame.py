@@ -21,6 +21,23 @@ class BaseNetworkFrame(BaseFrame):
     @property
     def nodes(self):
         """Return the node metadata of the frame."""
-        raise NotImplementedError()
-        # TODO something about checking whether source/target are the same thing?
-        pass
+        if self._unipartite:
+            return self.source_nodes
+        else:
+            msg = (
+                "`nodes` attributed is only available for verified unipartite "
+                "networks. Use `source_nodes` or `target_nodes` instead, or try "
+                "`.lock_unipartite()` if the network has the same source and target "
+                "nodes."
+            )
+            raise ValueError(msg)
+
+    def lock_unipartite(self):
+        if self.source_nodes.equals(self.target_nodes):
+            self._unipartite = True
+        else:
+            msg = (
+                "Can only set unipartite if network has the same source node and "
+                "target node metadata."
+            )
+            raise ValueError(msg)

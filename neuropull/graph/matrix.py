@@ -160,10 +160,14 @@ class SparseMatrix(_BaseMatrix):
         valid_new_row_positions = row_positions[new_index_map.notna()]
         valid_new_columns_map = new_columns_map[new_columns_map.notna()]
         valid_new_col_positions = col_positions[new_columns_map.notna()]
+        print('got here')
+        # TODO the line below is super memory inefficient I think
         new_matrix[
             np.ix_(valid_new_row_positions, valid_new_col_positions)
         ] = self._matrix[valid_new_index_map][:, valid_new_columns_map]
+        print('made new matrix')
         new_matrix = csr_array(new_matrix)
+        print('put into csr arr')
         return SparseMatrix(new_matrix, index, columns)
         # self._matrix = new_matrix
         # self._reset_indexing_maps(index, columns)

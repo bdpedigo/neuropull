@@ -116,3 +116,4 @@ site/
 # raw data (for now)
 processing/raw_data/
 data
+raw_data
