@@ -91,32 +91,35 @@ multi_adj_frame = MultiAdjacencyFrame(frames, nodes=nodes)
 sum_adj_frame = multi_adj_frame.to_adjacency_frame()
 
 #%%
-
-channel_key = 'nt_type'
-
+sum_adj_frame.data.count_nonzero() / (sum_adj_frame.data.shape[0] ** 2)
 
 #%%
-
-frames = {}
-for nt_type, nt_edgelist in edgelist.groupby('nt_type'):
-    print(nt_type)
-    g = nx.from_pandas_edgelist(
-        nt_edgelist,
-        source='pre_root_id',
-        target='post_root_id',
-        edge_attr='syn_count',
-        create_using=nx.DiGraph,
-    )
-    nodelist = list(g.nodes())
-    sparse_adj = nx.to_scipy_sparse_array(g, nodelist=nodelist, weight='syn_count')
-    nt_nodes = pd.DataFrame(index=nodelist)
-    nt_nodes.index.name = 'root_id'
-    nt_adj_frame = AdjacencyFrame(
-        sparse_adj, source_nodes=nt_nodes, target_nodes=nt_nodes
-    )
-    nt_adj_frame.lock_unipartite()
-    frames[nt_type] = nt_adj_frame
-
-multi_adj_frame = MultiAdjacencyFrame.from_union(frames)
+sum_adj_frame = sum_adj_frame.largest_connected_component()
 
 #%%
+out_path = Path("neuropull/data/flywire/526")
+
+# adj_df = pd.DataFrame(
+#     sum_adj_frame.data, index=sum_adj_frame.index, columns=sum_adj_frame.columns
+# )
+g = nx.from_scipy_sparse_array(sum_adj_frame.data, create_using=nx.DiGraph)
+node_map = dict(zip(range(len(sum_adj_frame.index)), sum_adj_frame.index))
+nx.relabel_nodes(g, node_map, copy=False)
+nx.write_weighted_edgelist(g, out_path / "edgelist.csv.gz")
+
+#%%
+sum_adj_frame.nodes.to_csv(out_path / "nodes.csv.gz")
+
+# #%%
+
+# lse = LaplacianSpectralEmbed(n_components=4, form='R-DAD', concat=True)
+# embedding = lse.fit_transform(sum_adj_frame.data)
+
+# #%%
+
+# rng = np.random.default_rng(8888)
+# inds = rng.choice(embedding.shape[0], size=5000, replace=False)
+# X = embedding[inds]
+# y = sum_adj_frame.nodes.iloc[inds]['class'].fillna('unk').values
+
+# pairplot(X, labels=y)

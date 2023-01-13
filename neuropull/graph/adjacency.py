@@ -1,10 +1,33 @@
 """Classes for representing networks as adjacency matrices with node metadata."""
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_array
+from scipy.sparse import csgraph, csr_array
 
 from .matrix import DenseMatrix, SparseMatrix
 from .network_frame import BaseNetworkFrame
+
+
+def _largest_connected_component(adjacency):
+    n_components, labels = csgraph.connected_components(
+        adjacency, directed=True, connection="weak", return_labels=True
+    )
+    if n_components > 1:
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        lcc_label_ind = np.argmax(counts)  # LCC is the component with the most nodes,
+        # so it is the component label with the highest count in the label array
+
+        lcc_label = unique_labels[lcc_label_ind]  # grab the component label for the LCC
+
+        lcc_mask = labels == lcc_label  # create a boolean mask array for where the
+        # component labels equal that of the largest connected component
+
+        lcc = adjacency[lcc_mask][:, lcc_mask]  # mask the adjacency matrix to only LCC
+
+        all_inds = np.arange(adjacency.shape[0])
+        lcc_inds = all_inds[lcc_mask]
+        return lcc, lcc_inds
+    else:
+        return adjacency, np.arange(adjacency.shape[0])
 
 
 class AdjacencyFrame(BaseNetworkFrame):
@@ -65,6 +88,15 @@ class AdjacencyFrame(BaseNetworkFrame):
         out += f"Source node features: {self.source_nodes.shape[1]}\n"
         out += f"Target node features: {self.target_nodes.shape[1]}\n"
         return out
+
+    def largest_connected_component(self):
+        """Return a new frame with only the largest connected component."""
+        # TODO hacky, this should use reindex
+        # but need to fix the sparse version first
+        lcc, lcc_inds = _largest_connected_component(self.data)
+        source_nodes = self.source_nodes.iloc[lcc_inds]
+        target_nodes = self.target_nodes.iloc[lcc_inds]
+        return AdjacencyFrame(lcc, source_nodes=source_nodes, target_nodes=target_nodes)
 
 
 # class OldAdjacencyFrame(BaseGraphFrame):
