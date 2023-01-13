@@ -87,6 +87,8 @@ for nt_type in edgelist['nt_type'].unique():
 #%%
 multi_adj_frame = MultiAdjacencyFrame(frames, nodes=nodes)
 
+#%%
+sum_adj_frame = multi_adj_frame.to_adjacency_frame()
 
 #%%
 

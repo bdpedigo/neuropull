@@ -16,7 +16,13 @@ class AdjacencyFrame(BaseNetworkFrame):
         _description_
     """
 
-    def __init__(self, adjacency, source_nodes=None, target_nodes=None) -> None:
+    def __init__(
+        self,
+        adjacency,
+        nodes=None,
+        source_nodes=None,
+        target_nodes=None,
+    ) -> None:
 
         if isinstance(adjacency, np.ndarray):
             adjacency = pd.DataFrame(adjacency)
@@ -34,10 +40,17 @@ class AdjacencyFrame(BaseNetworkFrame):
                 target_index = np.arange(adjacency.shape[1])
             adjacency = SparseMatrix(adjacency, source_index, target_index)
 
+        if nodes is not None:
+            source_nodes = nodes
+            target_nodes = nodes
+
         if source_nodes is None:
             source_nodes = pd.DataFrame(index=adjacency.index)
         if target_nodes is None:
             target_nodes = pd.DataFrame(index=adjacency.columns)
+
+        if source_nodes.equals(target_nodes):
+            self._unipartite = True
 
         super().__init__(adjacency, source_nodes, target_nodes)
 
@@ -145,15 +158,12 @@ class MultiAdjacencyFrame:
         all_nodes = [frame.nodes for frame in adjacency_frames]
         nodes = _concat_check_duplicates(all_nodes)
         union_index = nodes.index
-        print('made union index')
 
         new_adjacencies = {}
         for name, frame in zip(names, adjacency_frames):
             new_adjacencies[name] = frame.reindex(union_index).adjacency
-        print("collected union adjacencies")
 
         union_frame = cls(new_adjacencies, nodes=nodes)
-        print('created union frame')
 
         return union_frame
 
@@ -161,9 +171,20 @@ class MultiAdjacencyFrame:
         """Return a list of AdjacencyFrames from the layers of the multiplex network."""
         frames = {}
         for name, adjacency in self.adjacencies.items():
-            print(type(adjacency))
             frames[name] = AdjacencyFrame(adjacency, nodes=self.nodes)
         return frames
+
+    def to_adjacency_frame(self, agg=None):
+        """Return a single AdjacencyFrame from the layers of the multiplex network."""
+        if agg is None:
+            agg = np.sum
+
+        adjacencies = [frame.data for frame in self.to_adjacency_frames().values()]
+        adjacency = agg(adjacencies, axis=0)
+
+        return AdjacencyFrame(
+            adjacency, source_nodes=self.nodes, target_nodes=self.nodes
+        )
 
 
 def _concat_check_duplicates(dataframes):

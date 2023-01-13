@@ -287,3 +287,25 @@ class BaseFrame:
         )
 
         return self.__class__(new_data, row_objects, col_objects)
+
+    @property
+    def loc(self):
+        return LocIndexer(self)
+
+
+class LocIndexer:
+    def __init__(self, frame):
+        self._frame = frame
+
+    def __getitem__(self, args):
+        if isinstance(args, tuple):
+            if len(args) != 2:
+                raise ValueError("Must provide at most two indexes.")
+            else:
+                row_index, col_index = args
+        else:
+            raise NotImplementedError()
+
+        row_iloc = self._frame.index.get_loc(row_index)
+        col_iloc = self._frame.columns.get_loc(col_index)
+        return self._frame.data[row_iloc, col_iloc]
