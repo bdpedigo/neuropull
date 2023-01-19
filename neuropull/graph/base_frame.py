@@ -96,10 +96,11 @@ class BaseFrame:
         self, data: Any, row_objects: pd.DataFrame, col_objects: pd.DataFrame
     ) -> None:
 
-        if not row_objects.index.equals(data.index):
-            raise ValueError("Row objects index does not match matrix index")
-        if not col_objects.index.equals(data.columns):
-            raise ValueError("Column objects index does not match matrix columns")
+        # TODO need a better way to handle this esp. for sparse matrices
+        # if not row_objects.index.equals(data.index):
+        #     raise ValueError("Row objects index does not match matrix index")
+        # if not col_objects.index.equals(data.columns):
+        #     raise ValueError("Column objects index does not match matrix columns")
 
         self._data = data
         self._row_objects = row_objects
@@ -116,7 +117,7 @@ class BaseFrame:
         row_objects = self._row_objects.reindex(index=index)
         col_objects = self._col_objects.reindex(index=columns)
         if not inplace:
-            return self.__class__(data, row_objects, col_objects)
+            return self.__class__(data, row_objects.copy(), col_objects.copy())
         else:
             self._data = data
             self._row_objects = row_objects

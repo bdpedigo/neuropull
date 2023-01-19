@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_array, lil_array
+from scipy.sparse import csr_array
 
 from .types import Index
 
@@ -147,31 +147,46 @@ class SparseMatrix(_BaseMatrix):
         if columns is None:
             columns = self.columns
 
-        # TODO I think the smarter thing to do here is never instantiate the matrix
-        # until the user asks for it. Basically just keep an edgelist in the meantime.
-        # Then just remap indices when doing the reindex operations. But alas.
-        new_index_map = self._index_map.reindex(index).astype("Int64")
-        new_columns_map = self._columns_map.reindex(columns).astype("Int64")
-        new_matrix = lil_array((len(new_index_map), (len(new_columns_map))))
-        row_positions = np.arange(len(new_index_map))
-        col_positions = np.arange(len(new_columns_map))
-        # these are the indices in the old array, for all objects which were there
-        valid_new_index_map = new_index_map[new_index_map.notna()]
-        valid_new_row_positions = row_positions[new_index_map.notna()]
-        valid_new_columns_map = new_columns_map[new_columns_map.notna()]
-        valid_new_col_positions = col_positions[new_columns_map.notna()]
-        print('got here')
-        # TODO the line below is super memory inefficient I think
-        new_matrix[
-            np.ix_(valid_new_row_positions, valid_new_col_positions)
-        ] = self._matrix[valid_new_index_map][:, valid_new_columns_map]
-        print('made new matrix')
-        new_matrix = csr_array(new_matrix)
-        print('put into csr arr')
-        return SparseMatrix(new_matrix, index, columns)
-        # self._matrix = new_matrix
-        # self._reset_indexing_maps(index, columns)
-        # return self
+        # this is a map from new index (in new index sorted order) to old index
+        reordered_index_map = self._index_map.reindex(index).astype("Int64")
+        reordered_columns_map = self._columns_map.reindex(columns).astype("Int64")
+        # so this is a map from old positional index to new positional index
+        old_to_new_index_pos_map = pd.Series(
+            index=reordered_index_map.values, data=np.arange(len(reordered_index_map))
+        )
+        old_to_new_columns_pos_map = pd.Series(
+            index=reordered_columns_map.values,
+            data=np.arange(len(reordered_columns_map)),
+        )
+
+        # TODO: not sure how slow this is but probably could avoid getting all nonzeros
+        old_edge_row_indices, old_edge_col_indices = np.nonzero(self.matrix)
+
+        # mask to only keep edges that are in the new index
+        row_in_new_mask = np.isin(old_edge_row_indices, old_to_new_index_pos_map.index)
+        col_in_new_mask = np.isin(
+            old_edge_col_indices, old_to_new_columns_pos_map.index
+        )
+        in_new_mask = row_in_new_mask & col_in_new_mask
+        old_edge_row_indices = old_edge_row_indices[in_new_mask]
+        old_edge_col_indices = old_edge_col_indices[in_new_mask]
+
+        # for the edges that were there, get the new index position
+        new_edge_row_indices = old_to_new_index_pos_map.loc[old_edge_row_indices].values
+        new_edge_col_indices = old_to_new_columns_pos_map.loc[
+            old_edge_col_indices
+        ].values
+
+        # get the old edge data
+        edge_data = self.matrix[old_edge_row_indices, old_edge_col_indices]
+
+        # put in place in the new matrix
+        new_matrix = csr_array(
+            (edge_data, (new_edge_row_indices, new_edge_col_indices)),
+            shape=(len(index), len(columns)),
+        )
+        out = SparseMatrix(new_matrix, index, columns)
+        return out
 
     @property
     def index(self):
