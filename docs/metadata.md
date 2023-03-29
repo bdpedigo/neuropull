@@ -14,6 +14,8 @@ Draft of codifying a standard method for naming fields.
 `sex` : the sex of the organism.
 - Can be one of `{"hermaphrodite", "female", "male"}`
 
+`version` : version specifier for the dataset
+
 ## Node metadata
 
 `node_id` : the unique descriptor used to define each node, i.e. a skeleton ID from CATMAID
@@ -24,7 +26,7 @@ Draft of codifying a standard method for naming fields.
 - Can be one of `{"left", "right", "center", "unknown"}`
 
 `io` : short for input/output, defines the very high level role of a neuron in the sensory-motor transformation
-- Can be one of `{"input", "output", "intrinsic"}`
+- Can be one of `{"afferent", "efferent", "intrinsic"}`
 
 
 

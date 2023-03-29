@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.sparse import csgraph, csr_array
 
 from .matrix import DenseMatrix, SparseMatrix
-from .network_frame import BaseNetworkFrame
+from .network_frame_old import BaseNetworkFrame
 
 
 def _largest_connected_component(adjacency):
