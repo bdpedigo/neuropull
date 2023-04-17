@@ -117,3 +117,4 @@ site/
 processing/raw_data/
 data
 raw_data
+processing/scripts/maggot_new_frame_test.py
