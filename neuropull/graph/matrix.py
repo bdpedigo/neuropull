@@ -150,6 +150,7 @@ class SparseMatrix(_BaseMatrix):
         # this is a map from new index (in new index sorted order) to old index
         reordered_index_map = self._index_map.reindex(index).astype("Int64")
         reordered_columns_map = self._columns_map.reindex(columns).astype("Int64")
+
         # so this is a map from old positional index to new positional index
         old_to_new_index_pos_map = pd.Series(
             index=reordered_index_map.values, data=np.arange(len(reordered_index_map))

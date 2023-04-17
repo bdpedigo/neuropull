@@ -46,6 +46,9 @@ class AdjacencyFrame(BaseNetworkFrame):
         source_nodes=None,
         target_nodes=None,
     ) -> None:
+        if nodes is not None:
+            source_nodes = nodes
+            target_nodes = nodes
 
         if isinstance(adjacency, np.ndarray):
             adjacency = pd.DataFrame(adjacency)
@@ -62,10 +65,6 @@ class AdjacencyFrame(BaseNetworkFrame):
             else:
                 target_index = np.arange(adjacency.shape[1])
             adjacency = SparseMatrix(adjacency, source_index, target_index)
-
-        if nodes is not None:
-            source_nodes = nodes
-            target_nodes = nodes
 
         if source_nodes is None:
             source_nodes = pd.DataFrame(index=adjacency.index)
