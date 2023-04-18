@@ -8,9 +8,12 @@ else:
 
 from typing import Optional, Union
 
+import numpy as np
 import pandas as pd
 from beartype import beartype
 from scipy.sparse import csr_array
+from graspologic.utils import largest_connected_component
+
 
 AxisType = Union[
     Literal[0], Literal[1], Literal["index"], Literal["columns"], Literal['both']
@@ -52,6 +55,16 @@ class NetworkFrame:
     ):
 
         # TODO checks ensuring that nodes and edges are valid.
+
+        if not nodes.index.is_unique:
+            raise ValueError("Node IDs must be unique.")
+
+        referenced_node_ids = np.union1d(
+            edges['source'].unique(), edges['target'].unique()
+        )
+        if not np.all(np.isin(referenced_node_ids, nodes.index)):
+            raise ValueError("All nodes referenced in edges must be in nodes.")
+
         # should probably assume things like "source" and "target" columns
         # and that these elements are in the nodes dataframe
         # TODO are multigraphs allowed?
@@ -239,14 +252,30 @@ class NetworkFrame:
         source_indices = effective_edges.index.get_level_values('source')
         target_indices = effective_edges.index.get_level_values('target')
 
-        source_indices = pd.Categorical(source_indices, categories=self.sources)
-        target_indices = pd.Categorical(target_indices, categories=self.targets)
+        source_indices = pd.Categorical(source_indices, categories=self.nodes.index)
+        target_indices = pd.Categorical(target_indices, categories=self.nodes.index)
 
         adj = csr_array(
             (data, (source_indices.codes, target_indices.codes)),
             shape=(len(self.sources), len(self.targets)),
         )
         return adj
+
+    def largest_connected_component(self, inplace=False, verbose=False):
+        """Return the largest connected component of the network."""
+        adjacency = self.to_sparse_adjacency()
+        _, indices = largest_connected_component(adjacency, return_inds=True)
+        if verbose:
+            n_removed = len(self.nodes) - len(indices)
+            print(f"Nodes removed when taking largest connected component: {n_removed}")
+        nodes = self.nodes.iloc[indices]
+        edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
+        if inplace:
+            self.nodes = nodes
+            self.edges = edges
+            return None
+        else:
+            return NetworkFrame(nodes, edges, directed=self.directed)
 
     def groupby_nodes(self, by=None, axis='both', **kwargs):
         """Group the frame by node data for the source or target (or both).
