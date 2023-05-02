@@ -13,6 +13,7 @@ import pandas as pd
 from beartype import beartype
 from scipy.sparse import csr_array
 from graspologic.utils import largest_connected_component
+import copy
 
 
 AxisType = Union[
@@ -81,6 +82,10 @@ class NetworkFrame:
             self._targets = targets
         # TODO some checks on repeated edges if not directed
         self.directed = directed
+
+    def copy(self) -> "NetworkFrame":
+        """Return a copy of the NetworkFrame."""
+        return copy.deepcopy(self)
 
     @property
     def sources(self):
