@@ -11,6 +11,17 @@ class FrameGroupBy:
     """A class for grouping a Frame by a set of labels."""
 
     def __init__(self, frame, row_objects_groupby, col_objects_groupby):
+        """summary.
+
+        Parameters
+        ----------
+        frame : _type_
+            _description_
+        row_objects_groupby : _type_
+            _description_
+        col_objects_groupby : _type_
+            _description_
+        """
         self._frame = frame
         self._row_objects_groupby = row_objects_groupby
         self._col_objects_groupby = col_objects_groupby
@@ -20,7 +31,7 @@ class FrameGroupBy:
         elif col_objects_groupby is None:
             self._axis = 0
         else:
-            self._axis = 'both'
+            self._axis = "both"
 
         if self.has_row_groups:
             self.row_group_names = list(row_objects_groupby.groups.keys())
@@ -39,7 +50,7 @@ class FrameGroupBy:
 
     def __iter__(self):
         """Iterate over the groups."""
-        if self._axis == 'both':
+        if self._axis == "both":
             for row_group, row_objects in self._row_objects_groupby:
                 for col_group, col_objects in self._col_objects_groupby:
                     yield (row_group, col_group), self._frame.reindex(
@@ -54,7 +65,7 @@ class FrameGroupBy:
 
     def apply(self, func, *args, data=False, **kwargs):
         """Apply a function to each group."""
-        if self._axis == 'both':
+        if self._axis == "both":
             answer = pd.DataFrame(
                 index=self.row_group_names, columns=self.col_group_names
             )
@@ -75,18 +86,18 @@ class FrameGroupBy:
     @property
     def row_groups(self):
         """Return the row groups."""
-        if self._axis == 'both' or self._axis == 0:
+        if self._axis == "both" or self._axis == 0:
             return self._row_objects_groupby.groups
         else:
-            raise ValueError('No row groups, groupby was on columns only')
+            raise ValueError("No row groups, groupby was on columns only")
 
     @property
     def col_groups(self):
         """Return the column groups."""
-        if self._axis == 'both' or self._axis == 1:
+        if self._axis == "both" or self._axis == 1:
             return self._col_objects_groupby.groups
         else:
-            raise ValueError('No col groups, groupby was on rows only')
+            raise ValueError("No col groups, groupby was on rows only")
 
 
 class BaseFrame:
@@ -95,7 +106,6 @@ class BaseFrame:
     def __init__(
         self, data: Any, row_objects: pd.DataFrame, col_objects: pd.DataFrame
     ) -> None:
-
         # TODO need a better way to handle this esp. for sparse matrices
         # if not row_objects.index.equals(data.index):
         #     raise ValueError("Row objects index does not match matrix index")
@@ -165,7 +175,7 @@ class BaseFrame:
         """Reindex the frame to match another frame."""
         return self.reindex(index=other.index, columns=other.columns)
 
-    def query(self, query: str, axis='both') -> "BaseFrame":
+    def query(self, query: str, axis="both") -> "BaseFrame":
         """Query the frame according to a query string.
 
         Parameters
@@ -191,14 +201,14 @@ class BaseFrame:
             row_objects = row_objects.query(query)
         elif axis == 1:
             col_objects = col_objects.query(query)
-        elif axis == 'both':
+        elif axis == "both":
             row_objects = row_objects.query(query)
             col_objects = col_objects.query(query)
         else:
             raise ValueError("Axis must be 0 or 1 or 'both'")
         return self.reindex(row_objects.index, col_objects.index)
 
-    def groupby(self, by=None, axis='both', **kwargs):
+    def groupby(self, by=None, axis="both", **kwargs):
         """Group the frame by data in the row or column (or both) metadata.
 
         Parameters
@@ -222,7 +232,7 @@ class BaseFrame:
             row_objects_groupby = self.row_objects.groupby(by=by, **kwargs)
         elif axis == 1:
             col_objects_groupby = self.col_objects.groupby(by=by, **kwargs)
-        elif axis == 'both':
+        elif axis == "both":
             row_objects_groupby = self.row_objects.groupby(by=by, **kwargs)
             col_objects_groupby = self.col_objects.groupby(by=by, **kwargs)
         else:
@@ -230,7 +240,7 @@ class BaseFrame:
 
         return FrameGroupBy(self, row_objects_groupby, col_objects_groupby)
 
-    def sort_values(self, by, axis='both', **kwargs):
+    def sort_values(self, by, axis="both", **kwargs):
         """Sort the frame according to values in the row or column (or both) metadata.
 
         Parameters
@@ -256,7 +266,7 @@ class BaseFrame:
             row_objects = row_objects.sort_values(by=by, inplace=False, **kwargs)
         elif axis == 1:
             col_objects = col_objects.sort_values(by=by, inplace=False, **kwargs)
-        elif axis == 'both':
+        elif axis == "both":
             row_objects = row_objects.sort_values(by=by, inplace=False, **kwargs)
             col_objects = col_objects.sort_values(by=by, inplace=False, **kwargs)
         else:
@@ -291,14 +301,18 @@ class BaseFrame:
 
     @property
     def loc(self):
+        """Access a group of rows and columns by label(s) or a boolean array."""
         return LocIndexer(self)
 
 
 class LocIndexer:
+    """A class for indexing a frame by label(s) or a boolean array."""
+
     def __init__(self, frame):
         self._frame = frame
 
     def __getitem__(self, args):
+        """Access a group of rows and columns by label(s) or a boolean array."""
         if isinstance(args, tuple):
             if len(args) != 2:
                 raise ValueError("Must provide at most two indexes.")

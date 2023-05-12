@@ -6,6 +6,17 @@ class BaseNetworkFrame(BaseFrame):
     """Base class for representing a network with associated metadata."""
 
     def __init__(self, network, source_nodes=None, target_nodes=None) -> None:
+        """summary.
+
+        Parameters
+        ----------
+        network : _type_
+            _description_
+        source_nodes : _type_, optional
+            _description_, by default None
+        target_nodes : _type_, optional
+            _description_, by default None
+        """
         super().__init__(network, source_nodes, target_nodes)
 
     @property
@@ -33,6 +44,13 @@ class BaseNetworkFrame(BaseFrame):
             raise ValueError(msg)
 
     def lock_unipartite(self):
+        """summary.
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
         if self.source_nodes.equals(self.target_nodes):
             self._unipartite = True
         else:

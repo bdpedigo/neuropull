@@ -1,4 +1,5 @@
-#%%
+"""Classes for representing networks and metadata."""
+
 import sys
 
 if sys.version_info >= (3, 8):
@@ -6,21 +7,20 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
+import copy
 from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 from beartype import beartype
-from scipy.sparse import csr_array
 from graspologic.utils import largest_connected_component
-import copy
-
+from scipy.sparse import csr_array
 
 AxisType = Union[
-    Literal[0], Literal[1], Literal["index"], Literal["columns"], Literal['both']
+    Literal[0], Literal[1], Literal["index"], Literal["columns"], Literal["both"]
 ]
 
-EdgeAxisType = Union[Literal['source'], Literal['target'], Literal['both']]
+EdgeAxisType = Union[Literal["source"], Literal["target"], Literal["both"]]
 
 ColumnsType = Union[list, str]
 
@@ -54,14 +54,13 @@ class NetworkFrame:
         sources: Optional[pd.Index] = None,
         targets: Optional[pd.Index] = None,
     ):
-
         # TODO checks ensuring that nodes and edges are valid.
 
         if not nodes.index.is_unique:
             raise ValueError("Node IDs must be unique.")
 
         referenced_node_ids = np.union1d(
-            edges['source'].unique(), edges['target'].unique()
+            edges["source"].unique(), edges["target"].unique()
         )
         if not np.all(np.isin(referenced_node_ids, nodes.index)):
             raise ValueError("All nodes referenced in edges must be in nodes.")
@@ -126,10 +125,7 @@ class NetworkFrame:
         return out
 
     def reindex_nodes(self, index: pd.Index) -> "NetworkFrame":
-        """
-        Reindex the nodes dataframe to a new index. Also removes edges as necessary.
-
-        """
+        """Reindex the nodes dataframe, also removes edges as necessary."""
         nodes = self.nodes.reindex(index=index, axis=0)
         edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
         return NetworkFrame(nodes, edges, directed=self.directed)
@@ -182,7 +178,7 @@ class NetworkFrame:
             return NetworkFrame(nodes, self.edges, directed=self.directed)
 
     def apply_node_features(
-        self, columns: ColumnsType, axis: EdgeAxisType = 'both', inplace=False
+        self, columns: ColumnsType, axis: EdgeAxisType = "both", inplace=False
     ) -> Optional["NetworkFrame"]:
         """Apply node features to the edges dataframe."""
         if not inplace:
@@ -191,25 +187,25 @@ class NetworkFrame:
             edges = self.edges
         if isinstance(columns, str):
             columns = [columns]
-        if axis in ['source', 'both']:
+        if axis in ["source", "both"]:
             for col in columns:
-                edges[f'source_{col}'] = self.edges['source'].map(self.nodes[col])
-        if axis in ['target', 'both']:
+                edges[f"source_{col}"] = self.edges["source"].map(self.nodes[col])
+        if axis in ["target", "both"]:
             for col in columns:
-                edges[f'target_{col}'] = self.edges['target'].map(self.nodes[col])
+                edges[f"target_{col}"] = self.edges["target"].map(self.nodes[col])
         if inplace:
             self.edges = edges
             return None
         else:
             return NetworkFrame(self.nodes, edges, directed=self.directed)
 
-    def to_adjacency(self, weight_col: str = 'weight', aggfunc='sum') -> pd.DataFrame:
+    def to_adjacency(self, weight_col: str = "weight", aggfunc="sum") -> pd.DataFrame:
         """Return the adjacency matrix of the network."""
         # TODO: wondering if the sparse method of doing this would actually be faster
         # here too...
         adj_df = self.edges.pivot_table(
-            index='source',
-            columns='target',
+            index="source",
+            columns="target",
             values=weight_col,
             fill_value=0,
             aggfunc=aggfunc,
@@ -220,8 +216,8 @@ class NetworkFrame:
             columns=self.targets,
             fill_value=0,
         )
-        adj_df.index = adj_df.index.set_names('source')
-        adj_df.columns = adj_df.columns.set_names('target')
+        adj_df.index = adj_df.index.set_names("source")
+        adj_df.columns = adj_df.columns.set_names("target")
         return adj_df
 
     def to_networkx(self):
@@ -235,27 +231,27 @@ class NetworkFrame:
 
         g = nx.from_pandas_edgelist(
             self.edges,
-            source='source',
-            target='target',
+            source="source",
+            target="target",
             edge_attr=True,
             create_using=create_using,
         )
-        nx.set_node_attributes(g, self.nodes.to_dict(orient='index'))
+        nx.set_node_attributes(g, self.nodes.to_dict(orient="index"))
         return g
 
     def to_sparse_adjacency(
-        self, weight_col: str = 'weight', aggfunc='sum'
+        self, weight_col: str = "weight", aggfunc="sum"
     ) -> csr_array:
         """Return the adjacency matrix of the network as a sparse array."""
         edges = self.edges
         # TODO only necessary since there might be duplicate edges
         # might be more efficient to have a attributed checking this, e.g. set whether
         # this is a multigraph or not
-        effective_edges = edges.groupby(['source', 'target'])[weight_col].agg(aggfunc)
+        effective_edges = edges.groupby(["source", "target"])[weight_col].agg(aggfunc)
 
         data = effective_edges.values
-        source_indices = effective_edges.index.get_level_values('source')
-        target_indices = effective_edges.index.get_level_values('target')
+        source_indices = effective_edges.index.get_level_values("source")
+        target_indices = effective_edges.index.get_level_values("target")
 
         source_indices = pd.Categorical(source_indices, categories=self.nodes.index)
         target_indices = pd.Categorical(target_indices, categories=self.nodes.index)
@@ -282,7 +278,7 @@ class NetworkFrame:
         else:
             return NetworkFrame(nodes, edges, directed=self.directed)
 
-    def groupby_nodes(self, by=None, axis='both', **kwargs):
+    def groupby_nodes(self, by=None, axis="both", **kwargs):
         """Group the frame by node data for the source or target (or both).
 
         Parameters
@@ -306,7 +302,7 @@ class NetworkFrame:
             source_nodes_groupby = self.source_nodes.groupby(by=by, **kwargs)
         elif axis == 1:
             target_nodes_groupby = self.target_nodes.groupby(by=by, **kwargs)
-        elif axis == 'both':
+        elif axis == "both":
             source_nodes_groupby = self.source_nodes.groupby(by=by, **kwargs)
             target_nodes_groupby = self.target_nodes.groupby(by=by, **kwargs)
         else:
@@ -324,6 +320,17 @@ class NodeGroupBy:
     """A class for grouping a NetworkFrame by a set of labels."""
 
     def __init__(self, frame, source_groupby, target_groupby):
+        """Groupby on nodes.
+
+        Parameters
+        ----------
+        frame : _type_
+            _description_
+        source_groupby : _type_
+            _description_
+        target_groupby : _type_
+            _description_
+        """
         self._frame = frame
         self._source_groupby = source_groupby
         self._target_groupby = target_groupby
@@ -333,7 +340,7 @@ class NodeGroupBy:
         elif target_groupby is None:
             self._axis = 0
         else:
-            self._axis = 'both'
+            self._axis = "both"
 
         if self.has_source_groups:
             self.source_group_names = list(source_groupby.groups.keys())
@@ -352,7 +359,7 @@ class NodeGroupBy:
 
     def __iter__(self):
         """Iterate over the groups."""
-        if self._axis == 'both':
+        if self._axis == "both":
             for source_group, source_objects in self._source_groupby:
                 for target_group, target_objects in self._target_groupby:
                     yield (source_group, target_group), self._frame.loc[
@@ -388,24 +395,25 @@ class NodeGroupBy:
     @property
     def source_groups(self):
         """Return the row groups."""
-        if self._axis == 'both' or self._axis == 0:
+        if self._axis == "both" or self._axis == 0:
             return self._source_groupby.groups
         else:
-            raise ValueError('No source groups, groupby was on targets only')
+            raise ValueError("No source groups, groupby was on targets only")
 
     @property
     def target_groups(self):
         """Return the column groups."""
-        if self._axis == 'both' or self._axis == 1:
+        if self._axis == "both" or self._axis == 1:
             return self._target_groupby.groups
         else:
-            raise ValueError('No target groups, groupby was on sources only')
+            raise ValueError("No target groups, groupby was on sources only")
 
 
 class LocIndexer:
     """A class for indexing a NetworkFrame using .loc."""
 
     def __init__(self, frame):
+        """Indexer for NetworkFrame."""
         self._frame = frame
 
     def __getitem__(self, args):
@@ -447,7 +455,7 @@ class LocIndexer:
             )
         else:
             nodes = pd.concat([source_nodes, target_nodes], copy=False, sort=False)
-            nodes = nodes.loc[~nodes.index.duplicated(keep='first')]
+            nodes = nodes.loc[~nodes.index.duplicated(keep="first")]
             return NetworkFrame(
                 nodes,
                 edges,
