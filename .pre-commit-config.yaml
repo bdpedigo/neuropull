@@ -13,7 +13,7 @@ repos:
       - id: check-yaml
         args: [ --unsafe ]
       - id: check-added-large-files
-        args: ['--maxkb=500', --enforce-all]
+        args: ['--maxkb=50000', --enforce-all]
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.8.0
     hooks:

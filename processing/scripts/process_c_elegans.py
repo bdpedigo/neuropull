@@ -1,15 +1,12 @@
-#%% [markdown]
+# %% [markdown]
 # # *C. elegans* connectomes
-#%%
+# %%
 import datetime
 import time
 from pathlib import Path
 
-import networkx as nx
 import numpy as np
 import pandas as pd
-
-from neuropull.graph import AdjacencyFrame, MultiAdjacencyFrame
 
 DATA_PATH = Path("neuropull/processing/raw_data")
 OUT_PATH = Path("neuropull/data")
@@ -20,9 +17,9 @@ t0 = time.time()
 # TODO: at least add S/I/O/M categories
 
 
-#%% [markdown]
+# %% [markdown]
 # ## Load the raw adjacency matrices
-#%%
+# %%
 
 
 def create_node_data(node_ids, exceptions=[]):
@@ -44,14 +41,12 @@ def create_node_data(node_ids, exceptions=[]):
             is_right = bool(np.argmax((left_pos, right_pos)))
             side_indicator_loc = right_pos if is_right else left_pos
             node_pair = node_id[:side_indicator_loc] + node_id[side_indicator_loc + 1 :]
-            hemisphere = "R" if is_right else "L"
+            side = "right" if is_right else "left"
         else:
             node_pair = node_id
-            hemisphere = "C"
+            side = "center"
 
-        node_rows.append(
-            {"node_id": node_id, "pair": node_pair, "hemisphere": hemisphere}
-        )
+        node_rows.append({"node_id": node_id, "pair": node_pair, "side": side})
 
     nodes = pd.DataFrame(node_rows).set_index("node_id")
 
@@ -68,48 +63,51 @@ def load_adjacency(path):
     return adj_df
 
 
-def from_pandas_adjacencies(adjacencies, weight_names):
-    graphs = []
-    for adj in adjacencies:
-        graph = nx.from_pandas_adjacency(adj, create_using=nx.DiGraph)
-        graphs.append(graph)
+# def write_edgelist(g, saveloc, weight_names):
+#     with open(saveloc, "w") as f:
+#         # header
+#         lineout = "source,target,"
+#         for weight_name in weight_names:
+#             lineout += f"{weight_name},"
+#         f.write(lineout[:-1] + "\n")
 
-    graph = nx.DiGraph()
-    for i, g in enumerate(graphs):
-        graph.add_weighted_edges_from(g.edges(data="weight"), weight=weight_names[i])
-
-    return graph
-
-
-def write_edgelist(g, saveloc, weight_names):
-    with open(saveloc, 'w') as f:
-        # header
-        lineout = 'source,target,'
-        for weight_name in weight_names:
-            lineout += f'{weight_name},'
-        f.write(lineout[:-1] + '\n')
-
-        # edges
-        for u, v, data in g.edges(data=True):
-            lineout = f'{u},{v},'
-            for weight_name in weight_names:
-                if weight_name in data:
-                    lineout += f"{data[weight_name]},"
-                else:
-                    lineout += ','
-            f.write(lineout[:-1] + '\n')
+#         # edges
+#         for u, v, data in g.edges(data=True):
+#             lineout = f"{u},{v},"
+#             for weight_name in weight_names:
+#                 if weight_name in data:
+#                     lineout += f"{data[weight_name]},"
+#                 else:
+#                     lineout += ","
+#             f.write(lineout[:-1] + "\n")
 
 
-#%% [markdown]
+# %% [markdown]
 # ## Filter data
 # Make sure neurons are lateralized and fully connected
 
-weight_names = ['chemical_weight', 'electrical_weight']
+weight_names = ["chemical_weight", "electrical_weight"]
 
 
-#%%
+def to_edgelist(adjacency, weight_name="weight", directed=True):
+    adj_values = adjacency.values.copy()
+    if not directed:
+        indices = np.triu_indices_from(adj_values, k=1)
+        adj_values[indices] = 0
 
-for sex in ["male", "herm"]:
+    source_ilocs, target_ilocs = np.nonzero(adj_values)
+    weights = adjacency.values[source_ilocs, target_ilocs]
+    source_locs = adjacency.index[source_ilocs]
+    target_locs = adjacency.index[target_ilocs]
+    edgelist = pd.DataFrame(
+        {"source": source_locs, "target": target_locs, weight_name: weights}
+    )
+    return edgelist
+
+
+# %%
+
+for sex in ["male", "hermaphrodite"]:
     chem_name = f"{sex}_chem_adj.csv"
 
     ################
@@ -125,71 +123,40 @@ for sex in ["male", "herm"]:
     # checking that the electrical connections are already symmetric
     assert (elec_adj.values.T == elec_adj.values.T).all()
 
+    # convert to edge tables
+    chem_edgelist = to_edgelist(chem_adj, weight_name="chemical_weight").set_index(
+        ["source", "target"]
+    )
+    elec_edgelist = to_edgelist(elec_adj, weight_name="electrical_weight").set_index(
+        ["source", "target"]
+    )
+    edgelist = (
+        chem_edgelist.join(elec_edgelist, how="outer").astype("Int64").reset_index()
+    )
+    edgelist["weight"] = edgelist["chemical_weight"].fillna(0) + edgelist[
+        "electrical_weight"
+    ].fillna(0)
+    edgelist = edgelist[
+        ["source", "target", "weight", "chemical_weight", "electrical_weight"]
+    ]
+
     node_ids = chem_adj.index.union(elec_adj.index)
 
     # generate some node metadata programatically
     nodes = create_node_data(node_ids, exceptions=["vBWM", "dgl", "dBWM"])
 
-    chem_graph = AdjacencyFrame(chem_adj)
-    elec_graph = AdjacencyFrame(elec_adj)
-    print(len(chem_graph))
-    print(len(elec_graph))
-    chem_graph = chem_graph.union(elec_graph)
-    elec_graph = elec_graph.union(chem_graph)
-    print(len(chem_graph))
-    print(len(elec_graph))
-    print()
+    nodes.index.name = "node_id"
 
-    multigraph = MultiAdjacencyFrame(
-        {"chemical": chem_graph, "electrical": elec_graph},
-        nodes=nodes,
-    )
-    frames = multigraph.to_adjacency_frames()
-    chem_graph = frames['chemical']
-    elec_graph = frames['electrical']
+    saveloc = OUT_PATH / f"c_elegans_{sex}"
 
-    g = from_pandas_adjacencies(
-        [chem_graph.adjacency, elec_graph.adjacency], weight_names
-    )
+    edgelist.to_csv(saveloc / "edgelist.csv", index=False)
+    edgelist.to_csv(saveloc / "edgelist.csv.gz", index=False)
+    nodes.to_csv(saveloc / "nodes.csv")
+    nodes.to_csv(saveloc / "nodes.csv.gz")
 
-    saveloc = OUT_PATH / f'c_elegans_{sex}_edgelist.csv'
-    write_edgelist(g, saveloc, weight_names=weight_names)
-
-    saveloc = OUT_PATH / f"c_elegans_{sex}_nodes.csv"
-    chem_graph.nodes.to_csv(saveloc)
-
-#%%
-nodes_path = DATA_PATH / "c_elegans" / "nodes.csv"
-nodes = pd.read_csv(nodes_path, index_col=0)
-nodes
-
-#%%
-node_ids[~node_ids.isin(nodes.index)]
-
-#%%
-network_index = node_ids.str.lower().str.strip(" ")
-
-should_be_herm_nodes = nodes[nodes['sex'] != 'male']
-node_index = should_be_herm_nodes.index.str.lower().str.strip(' ')
-
-missing_in_graph = node_index.difference(network_index)
-missing_in_nodes = network_index.difference(node_index)
-
-#%%
-missing_in_graph.sort_values()
-
-
-#%%
-missing_in_nodes.sort_values()
-
-#%%
-multiframe = MultiAdjacencyFrame.from_union(
-    {'chemical': chem_adj, "electrical": elec_adj}
-)
-
-#%% [markdown]
+# %% [markdown]
 # ## End
-#%%
+# %%
 elapsed = time.time() - t0
 delta = datetime.timedelta(seconds=elapsed)
 print(f"Script took {delta}")

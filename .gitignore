@@ -115,6 +115,19 @@ site/
 
 # raw data (for now)
 processing/raw_data/
-data
 raw_data
 processing/scripts/maggot_new_frame_test.py
+
+data/*
+
+!data/c_elegans_male
+data/c_elegans_male/*
+!data/c_elegans_male/*.gz
+
+!data/c_elegans_hermaphrodite
+data/c_elegans_hermaphrodite/*
+!data/c_elegans_hermaphrodite/*.gz
+
+!data/maggot_brain
+data/maggot_brain/*
+!data/maggot_brain/*.gz
