@@ -22,7 +22,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.0,<3.10"
+python = ">=3.8.0,<3.12"
 # dev stuff
 black  = { version = "^22.3.0", optional = true}
 isort  = { version = "^5.8.0", optional = true}
@@ -49,9 +49,9 @@ python-catmaid = {version = "^2.1.1", optional = true}
 ipykernel = {version = "^6.15.3", optional = true}
 graspologic = {version = "^2.0.0", optional = true}
 # real stuff
-numpy = ">=1.23.0,<1.24.0"
-networkx = "^2.8.6"
-beartype = "^0.11.0"
+numpy = ">=1.23.0"
+networkx = ">=2.8.6"
+beartype = ">=0.11.0"
 scipy = "^1.9.2"
 pandas = "^2.0.0"
 mkdocs-jupyter = {version = "^0.22.0", optional = true}

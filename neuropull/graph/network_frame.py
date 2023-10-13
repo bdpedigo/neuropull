@@ -143,6 +143,60 @@ class NetworkFrame:
     #     self.reindex_edges(other.edges.index, axis='both')
     #     return self
 
+    def remove_nodes(self, nodes: pd.Index, inplace=False) -> Optional["NetworkFrame"]:
+        """Remove nodes from the network and remove edges that are no longer valid."""
+        nodes = self.nodes.drop(index=nodes)
+        # get the edges that are connected to the nodes that are left after the query
+        edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
+        if inplace:
+            self.nodes = nodes
+            self.edges = edges
+            return None
+        else:
+            return NetworkFrame(nodes, edges, directed=self.directed)
+
+    def remove_edges(
+        self, remove_edges: pd.DataFrame, inplace=False
+    ) -> Optional["NetworkFrame"]:
+        """Remove edges from the network."""
+        # TODO handle inplace better
+
+        remove_edges_index = pd.MultiIndex.from_frame(
+            remove_edges[["source", "target"]]
+        )
+        current_index = pd.MultiIndex.from_frame(self.edges[["source", "target"]])
+        new_index = current_index.difference(remove_edges_index)
+
+        # TODO i think this destroys the old index?
+        edges = self.edges.set_index(["source", "target"]).loc[new_index].reset_index()
+        if inplace:
+            self.edges = edges
+            return None
+        else:
+            return NetworkFrame(self.nodes, edges, directed=self.directed)
+
+    def add_nodes(
+        self, new_nodes: pd.DataFrame, inplace=False
+    ) -> Optional["NetworkFrame"]:
+        """Add nodes to the network."""
+        nodes = pd.concat([self.nodes, new_nodes], copy=False, sort=False, axis=0)
+        if inplace:
+            self.nodes = nodes
+            return None
+        else:
+            return NetworkFrame(nodes, self.edges, directed=self.directed)
+
+    def add_edges(
+        self, new_edges: pd.DataFrame, inplace=False
+    ) -> Optional["NetworkFrame"]:
+        """Add edges to the network."""
+        edges = pd.concat([self.edges, new_edges], copy=False, sort=False, axis=0)
+        if inplace:
+            self.edges = edges
+            return None
+        else:
+            return NetworkFrame(self.nodes, edges, directed=self.directed)
+
     def query_nodes(self, query: str, inplace=False) -> Optional["NetworkFrame"]:
         """Query the nodes dataframe and remove edges that are no longer valid."""
         nodes = self.nodes.query(query)
@@ -240,14 +294,19 @@ class NetworkFrame:
         return g
 
     def to_sparse_adjacency(
-        self, weight_col: str = "weight", aggfunc="sum"
+        self, weight_col: Optional[str] = None, aggfunc="sum"
     ) -> csr_array:
         """Return the adjacency matrix of the network as a sparse array."""
         edges = self.edges
         # TODO only necessary since there might be duplicate edges
         # might be more efficient to have a attributed checking this, e.g. set whether
         # this is a multigraph or not
-        effective_edges = edges.groupby(["source", "target"])[weight_col].agg(aggfunc)
+        if weight_col is not None:
+            effective_edges = edges.groupby(["source", "target"])[weight_col].agg(
+                aggfunc
+            )
+        else:
+            effective_edges = edges.groupby(["source", "target"]).size()
 
         data = effective_edges.values
         source_indices = effective_edges.index.get_level_values("source")
@@ -277,6 +336,31 @@ class NetworkFrame:
             return None
         else:
             return NetworkFrame(nodes, edges, directed=self.directed)
+
+    def connected_components(self):
+        """Return the connected components of the network."""
+        from scipy.sparse.csgraph import connected_components
+
+        adjacency = self.to_sparse_adjacency()
+        n_components, labels = connected_components(adjacency, directed=self.directed)
+        index = self.nodes.index
+
+        for i in range(n_components):
+            this_index = index[labels == i]
+            yield self.loc[this_index, this_index]
+
+        # for i in range(n_components):
+        #     component_nodes = self.nodes.iloc[labels == i]
+        #     component_edges = self.edges.query(
+        #         "(source in @component_nodes.index) & (target in @component_nodes.index)"
+        #     )
+        #     if inplace:
+        #         self.nodes = component_nodes
+        #         self.edges = component_edges
+        #     else:
+        #         yield NetworkFrame(
+        #             component_nodes, component_edges, directed=self.directed
+        #         )
 
     def groupby_nodes(self, by=None, axis="both", **kwargs):
         """Group the frame by node data for the source or target (or both).
