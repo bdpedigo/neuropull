@@ -129,21 +129,12 @@ class NetworkFrame:
         edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
         return NetworkFrame(nodes, edges, directed=self.directed)
 
-    # def reindex_edges(self, index: pd.Index, axis: AxisType = 0) -> "NetworkFrame":
-    #     if axis != 'both':
-    #         self.edges = self.edges.reindex(index=index, axis=axis)
-    #     else:
-    #         self.edges = self.edges.reindex(index=index, axis=0)
-    #         self.edges = self.edges.reindex(index=index, axis=1)
-    #     return self
-
-    # def reindex_like(self, other: "NetworkFrame") -> "NetworkFrame":
-    #     self.reindex_nodes(other.nodes.index, axis='both')
-    #     self.reindex_edges(other.edges.index, axis='both')
-    #     return self
-
-    def remove_nodes(self, nodes: pd.Index, inplace=False) -> Optional["NetworkFrame"]:
+    def remove_nodes(
+        self, nodes: Union[pd.DataFrame, pd.Index, list, np.ndarray], inplace=False
+    ) -> Optional["NetworkFrame"]:
         """Remove nodes from the network and remove edges that are no longer valid."""
+        if isinstance(nodes, pd.DataFrame):
+            nodes = nodes.index
         nodes = self.nodes.drop(index=nodes)
         # get the edges that are connected to the nodes that are left after the query
         edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
