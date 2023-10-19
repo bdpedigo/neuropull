@@ -2,5 +2,6 @@
 
 from .adjacency import AdjacencyFrame, MultiAdjacencyFrame
 from .network_frame import NetworkFrame
+from .operations import concat
 
 __all__ = ["AdjacencyFrame", "MultiAdjacencyFrame", "NetworkFrame"]

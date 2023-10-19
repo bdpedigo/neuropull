@@ -13,7 +13,6 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 from beartype import beartype
-from graspologic.utils import largest_connected_component
 from scipy.sparse import csr_array
 
 AxisType = Union[
@@ -321,14 +320,21 @@ class NetworkFrame:
         )
         return adj
 
+    def _get_component_indices(self):
+        """Helper function for connected_components."""
+        from scipy.sparse.csgraph import connected_components
+
+        adjacency = self.to_sparse_adjacency()
+        n_components, labels = connected_components(adjacency, directed=self.directed)
+        return n_components, labels
+
     def largest_connected_component(self, inplace=False, verbose=False):
         """Return the largest connected component of the network."""
-        adjacency = self.to_sparse_adjacency()
-        _, indices = largest_connected_component(adjacency, return_inds=True)
+        _, labels = self._get_component_indices()
         if verbose:
-            n_removed = len(self.nodes) - len(indices)
+            n_removed = len(self.nodes) - len(labels)
             print(f"Nodes removed when taking largest connected component: {n_removed}")
-        nodes = self.nodes.iloc[indices]
+        nodes = self.nodes.iloc[labels]
         edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
         if inplace:
             self.nodes = nodes
@@ -339,28 +345,33 @@ class NetworkFrame:
 
     def connected_components(self):
         """Return the connected components of the network."""
-        from scipy.sparse.csgraph import connected_components
-
-        adjacency = self.to_sparse_adjacency()
-        n_components, labels = connected_components(adjacency, directed=self.directed)
+        n_components, labels = self._get_component_indices()
         index = self.nodes.index
 
         for i in range(n_components):
             this_index = index[labels == i]
             yield self.loc[this_index, this_index]
 
-        # for i in range(n_components):
-        #     component_nodes = self.nodes.iloc[labels == i]
-        #     component_edges = self.edges.query(
-        #         "(source in @component_nodes.index) & (target in @component_nodes.index)"
-        #     )
-        #     if inplace:
-        #         self.nodes = component_nodes
-        #         self.edges = component_edges
-        #     else:
-        #         yield NetworkFrame(
-        #             component_nodes, component_edges, directed=self.directed
-        #         )
+    def n_connected_components(self):
+        """Return the number of connected components of the network."""
+        n_components, _ = self._get_component_indices()
+        return n_components
+
+    def is_fully_connected(self):
+        """Return whether the network is fully connected."""
+        return self.n_connected_components() == 1
+
+    def label_nodes_by_component(self, inplace=False, name="component"):
+        """Add a column labeling nodes by which connected component they are in."""
+        _, labels = self._get_component_indices()
+
+        if inplace:
+            self.nodes[name] = labels
+            return None
+        else:
+            nodes = self.nodes.copy()
+            nodes[name] = labels
+            return NetworkFrame(nodes, self.edges, directed=self.directed)
 
     def groupby_nodes(self, by=None, axis="both", **kwargs):
         """Group the frame by node data for the source or target (or both).
@@ -398,6 +409,42 @@ class NetworkFrame:
     def loc(self):
         """Return a LocIndexer for the frame."""
         return LocIndexer(self)
+
+    def __eq__(self, other):
+        """
+        Check if two NetworkFrames are equal.
+
+        Note that this considers both node/edge names and features.
+
+        It does not consider the order of the nodes/edges.
+
+        It does not consider the indexing of the edges.
+        """
+        nodes1 = self.nodes
+        nodes2 = other.nodes
+        edges1 = self.edges
+        edges2 = other.edges
+        if not nodes1.sort_index().equals(nodes2.sort_index()):
+            return False
+        if (
+            not edges1.sort_values(["source", "target"])
+            .reset_index(drop=True)
+            .equals(edges2.sort_values(["source", "target"]).reset_index(drop=True))
+        ):
+            return False
+        return True
+
+    def __ne__(self, other):
+        """
+        Check if two NetworkFrames are not equal.
+
+        Note that this considers both node/edge names and features.
+
+        It does not consider the order of the nodes/edges.
+
+        It does not consider the indexing of the edges.
+        """
+        return not self.__eq__(other)
 
 
 class NodeGroupBy:
@@ -501,14 +548,14 @@ class LocIndexer:
         self._frame = frame
 
     def __getitem__(self, args):
-        """Return a NetworkFrame with the given indices."""
+        """Return a NetworkFrame with the given labels."""
         if isinstance(args, tuple):
             if len(args) != 2:
                 raise ValueError("Must provide at most two indexes.")
             else:
                 row_index, col_index = args
         else:
-            raise NotImplementedError()
+            raise NotImplementedError("Currently only accepts dual indexing.")
 
         if isinstance(row_index, int):
             row_index = [row_index]
