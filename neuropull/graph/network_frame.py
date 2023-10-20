@@ -358,10 +358,12 @@ class NetworkFrame:
 
         if inplace:
             self.nodes[name] = labels
+            self.nodes[name] = self.nodes[name].astype("Int64")
             return None
         else:
             nodes = self.nodes.copy()
             nodes[name] = labels
+            nodes[name] = nodes[name].astype("Int64")
             return NetworkFrame(nodes, self.edges, directed=self.directed)
 
     def groupby_nodes(self, by=None, axis="both", **kwargs):
