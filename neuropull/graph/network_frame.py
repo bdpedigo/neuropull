@@ -6,8 +6,8 @@ if sys.version_info >= (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
-
 import copy
+from collections.abc import Iterator
 from typing import Optional, Union
 
 import numpy as np
@@ -284,7 +284,7 @@ class NetworkFrame:
         return g
 
     def to_sparse_adjacency(
-        self, weight_col: Optional[str] = None, aggfunc="sum"
+        self, weight_col: Optional[str] = None, aggfunc="sum", verify_integrity=True
     ) -> csr_array:
         """Return the adjacency matrix of the network as a sparse array."""
         edges = self.edges
@@ -302,6 +302,15 @@ class NetworkFrame:
         source_indices = effective_edges.index.get_level_values("source")
         target_indices = effective_edges.index.get_level_values("target")
 
+        if verify_integrity:
+            if (
+                not np.isin(source_indices, self.nodes.index).all()
+                and not np.isin(target_indices, self.nodes.index).all()
+            ):
+                raise ValueError(
+                    "Not all source and target indices are in the nodes index."
+                )
+
         source_indices = pd.Categorical(source_indices, categories=self.nodes.index)
         target_indices = pd.Categorical(target_indices, categories=self.nodes.index)
 
@@ -311,7 +320,7 @@ class NetworkFrame:
         )
         return adj
 
-    def _get_component_indices(self):
+    def _get_component_indices(self) -> tuple[int, np.ndarray]:
         """Helper function for connected_components."""
         from scipy.sparse.csgraph import connected_components
 
@@ -319,14 +328,22 @@ class NetworkFrame:
         n_components, labels = connected_components(adjacency, directed=self.directed)
         return n_components, labels
 
-    def largest_connected_component(self, inplace=False, verbose=False):
+    def largest_connected_component(
+        self, inplace: bool = False, verbose: bool = False
+    ) -> Optional["NetworkFrame"]:
         """Return the largest connected component of the network."""
         _, labels = self._get_component_indices()
+        label_counts = pd.Series(labels).value_counts()
+        biggest_label = label_counts.idxmax()
+        mask = labels == biggest_label
+
         if verbose:
-            n_removed = len(self.nodes) - len(labels)
+            n_removed = len(self.nodes) - mask.sum()
             print(f"Nodes removed when taking largest connected component: {n_removed}")
-        nodes = self.nodes.iloc[labels]
+
+        nodes = self.nodes.iloc[mask]
         edges = self.edges.query("(source in @nodes.index) & (target in @nodes.index)")
+
         if inplace:
             self.nodes = nodes
             self.edges = edges
@@ -334,7 +351,7 @@ class NetworkFrame:
         else:
             return NetworkFrame(nodes, edges, directed=self.directed)
 
-    def connected_components(self):
+    def connected_components(self) -> Iterator["NetworkFrame"]:
         """Return the connected components of the network."""
         n_components, labels = self._get_component_indices()
         index = self.nodes.index
@@ -343,16 +360,18 @@ class NetworkFrame:
             this_index = index[labels == i]
             yield self.loc[this_index, this_index]
 
-    def n_connected_components(self):
+    def n_connected_components(self) -> int:
         """Return the number of connected components of the network."""
         n_components, _ = self._get_component_indices()
         return n_components
 
-    def is_fully_connected(self):
+    def is_fully_connected(self) -> bool:
         """Return whether the network is fully connected."""
         return self.n_connected_components() == 1
 
-    def label_nodes_by_component(self, inplace=False, name="component"):
+    def label_nodes_by_component(
+        self, inplace: bool = False, name: str = "component"
+    ) -> Optional["NetworkFrame"]:
         """Add a column labeling nodes by which connected component they are in."""
         _, labels = self._get_component_indices()
 
@@ -366,7 +385,7 @@ class NetworkFrame:
             nodes[name] = nodes[name].astype("Int64")
             return NetworkFrame(nodes, self.edges, directed=self.directed)
 
-    def groupby_nodes(self, by=None, axis="both", **kwargs):
+    def groupby_nodes(self, by=None, axis="both", **kwargs) -> "NodeGroupBy":
         """Group the frame by node data for the source or target (or both).
 
         Parameters
@@ -399,11 +418,11 @@ class NetworkFrame:
         return NodeGroupBy(self, source_nodes_groupby, target_nodes_groupby)
 
     @property
-    def loc(self):
+    def loc(self) -> "LocIndexer":
         """Return a LocIndexer for the frame."""
         return LocIndexer(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: "NetworkFrame") -> bool:
         """
         Check if two NetworkFrames are equal.
 
@@ -427,7 +446,7 @@ class NetworkFrame:
             return False
         return True
 
-    def __ne__(self, other):
+    def __ne__(self, other: "NetworkFrame") -> bool:
         """
         Check if two NetworkFrames are not equal.
 
@@ -438,6 +457,14 @@ class NetworkFrame:
         It does not consider the indexing of the edges.
         """
         return not self.__eq__(other)
+
+    def to_dict(self, orient: str = "dict") -> dict:
+        """Return a dictionary representation of the NetworkFrame."""
+        return {
+            "nodes": self.nodes.to_dict(orient=orient),
+            "edges": self.edges.to_dict(orient=orient),
+            "directed": self.directed,
+        }
 
 
 class NodeGroupBy:
@@ -486,9 +513,10 @@ class NodeGroupBy:
         if self._axis == "both":
             for source_group, source_objects in self._source_groupby:
                 for target_group, target_objects in self._target_groupby:
-                    yield (source_group, target_group), self._frame.loc[
-                        source_objects.index, target_objects.index
-                    ]
+                    yield (
+                        (source_group, target_group),
+                        self._frame.loc[source_objects.index, target_objects.index],
+                    )
         elif self._axis == 0:
             for source_group, source_objects in self._source_groupby:
                 yield source_group, self._frame.loc[source_objects.index]
