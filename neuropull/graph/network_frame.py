@@ -466,6 +466,24 @@ class NetworkFrame:
             "directed": self.directed,
         }
 
+    def to_json(self, orient: str = "dict") -> str:
+        """Return a JSON representation of the NetworkFrame."""
+        import json
+
+        return json.dumps(self.to_dict(orient=orient))
+
+    @classmethod
+    def from_dict(cls, d: dict, orient="columns", index_dtype=int) -> "NetworkFrame":
+        """Return a NetworkFrame from a dictionary representation."""
+        edges = pd.DataFrame.from_dict(d["edges"], orient=orient)
+        nodes = pd.DataFrame.from_dict(d["nodes"], orient=orient)
+        nodes.index = nodes.index.astype(index_dtype)
+        return cls(
+            nodes,
+            edges,
+            directed=d["directed"],
+        )
+
 
 class NodeGroupBy:
     """A class for grouping a NetworkFrame by a set of labels."""
